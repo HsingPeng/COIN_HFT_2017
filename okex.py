@@ -24,7 +24,7 @@ class Okex(Exchange):
         _channel = deJson[0]['channel']
         data = deJson[0]['data']
         self._update_depth(base_coin, trans_coin, data['bids'], data['asks'])
-        logging.debug(data)
+        #logging.debug(data)
 
     def on_message(self, ws, msg):
         decompress = zlib.decompressobj(
@@ -47,14 +47,14 @@ class Okex(Exchange):
         logging.error(error)
 
     def on_close(self, ws):
-        logging.debug("#### closed ###")
+        logging.debug("okex:#### closed ###")
 
     def on_open(self, ws):
+        logging.debug('okex:### opening ###')
         #ws.send("{'event':'addChannel','channel':'ok_sub_spot_eth_usdt_ticker','binary':'1'}")
         ws.send("{'event':'addChannel','channel':'ok_sub_spot_eth_usdt_depth_5','binary':'1'}")
         ws.send("{'event':'addChannel','channel':'ok_sub_spot_eth_btc_depth_5','binary':'1'}")
         ws.send("{'event':'addChannel','channel':'ok_sub_spot_btc_usdt_depth_5','binary':'1'}")
-        logging.debug('### opening ###')
 
     def connect(self):
         websocket.enableTrace(False)
@@ -70,7 +70,7 @@ class Okex(Exchange):
 
 
 def sigint_handler(signum,frame):
-    logging.debug("exit")
+    logging.debug("okex:exit")
     sys.exit()
 
 

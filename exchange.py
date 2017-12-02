@@ -1,4 +1,5 @@
 import abc
+import logging
 
 class Exchange:
     __metaclass__ = abc.ABCMeta
@@ -23,15 +24,17 @@ class Exchange:
         trans_coin_dict['asks'] = asks_list
 
     def get_depth(self, base_coin, trans_coin, bids_or_asks):
-        base_coin_dict = __depth_dict.get(base_coin)
+        base_coin_dict = self.__depth_dict.get(base_coin)
         if base_coin_dict != None:
             trans_coin_dict = base_coin_dict.get(trans_coin);
             if trans_coin_dict != None:
                 bids_or_asks_list = trans_coin_dict.get(bids_or_asks)
-                if (bids_or_asks_list == None):
-                    return None
-        return tuple(bids_or_asks_list)
-    
+                if (bids_or_asks_list != None):
+                    return tuple(bids_or_asks_list)
+        logging.error('get_depth failed:base_coin='
+                + base_coin + ' trans_coin=' + trans_coin
+                + ' bids_or_asks' + bids_or_asks)
+        return None
     @abc.abstractmethod
     def connect(self):
         pass

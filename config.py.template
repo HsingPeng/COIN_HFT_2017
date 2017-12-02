@@ -1,0 +1,17 @@
+#####################################
+#                                   #
+#  Do not leak the file to anyone!  #
+#                                   #
+#####################################
+
+class Config(object):
+
+    # config your accounts
+    okex_api_key=None
+    okex_secret_key=None
+
+    # add the coins that need to be monitor
+    okex_three_trade_list=[
+                    ('eth', 'btc')
+                    , ('btc', 'eth')
+                    ]
