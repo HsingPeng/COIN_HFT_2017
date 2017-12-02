@@ -16,7 +16,9 @@ class Controller(object):
 
     def setOkex(self):
         self.exchange = Okex()
-        for trade in Config.okex_three_trade_list:
+        trade_list = Config.okex_three_trade_list
+        self.exchange.add_coins(trade_list)
+        for trade in trade_list:
             self.calculation.add_three_trade(trade[0], trade[1])
 
     def fetch_data_from_exchange(self):
@@ -66,8 +68,8 @@ class CalculateThread(threading.Thread):
         time.sleep(4)
         while self.keep_running:
             profit_list = calculation.cal(self.exchange)
-            logging.info('main:profit_list' + str(profit_list))
-            time.sleep(1)
+            logging.debug('main:profit_list' + str(profit_list))
+            time.sleep(0.5)
 
 def sigint_handler(signum,frame):
     logging.info("main:exit")

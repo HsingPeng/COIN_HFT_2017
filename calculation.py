@@ -1,4 +1,5 @@
 import logging
+import bisect
 
 class Calculation(object):
 
@@ -82,9 +83,15 @@ class Calculation(object):
             if min_usdt > third_depth_usdt:
                 min_usdt = third_depth_usdt
             # finish the calculation
-            logging.debug('calculation:first_coin=' + first_coin
-                        + '\tsecond_coin=' + second_coin
-                        + '\tmin_usdt=' + str(min_usdt)
-                        + '\tprofit=' + str(profit))
-            profit_list.append([first_coin, second_coin, min_usdt, profit])
+            '''logging.debug('calculation:first_coin=' + first_coin
+                            + '\tsecond_coin=' + second_coin
+                            + '\tmin_usdt=' + str(min_usdt)
+                            + '\tprofit=' + str(profit))'''
+            if profit > 0.05 and min_usdt >= 5:
+                logging.debug('calculation:first_coin=' + first_coin
+                            + '\tsecond_coin=' + second_coin
+                            + '\tmin_usdt=' + str(min_usdt)
+                            + '\tprofit=' + str(profit))
+                bisect.insort(profit_list, (profit, min_usdt, first_coin, second_coin))
+        profit_list.reverse()
         return profit_list

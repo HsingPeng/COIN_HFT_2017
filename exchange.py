@@ -33,7 +33,7 @@ class Exchange:
                     return tuple(bids_or_asks_list)
         logging.error('get_depth failed:base_coin='
                 + base_coin + ' trans_coin=' + trans_coin
-                + ' bids_or_asks' + bids_or_asks)
+                + ' bids_or_asks:' + bids_or_asks)
         return None
     @abc.abstractmethod
     def connect(self):
@@ -41,4 +41,8 @@ class Exchange:
 
     @abc.abstractmethod
     def close(self):
+        pass
+
+    @abc.abstractmethod
+    def add_coins(self, coin_list):
         pass

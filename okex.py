@@ -36,12 +36,12 @@ class Okex(Exchange):
         channel = deJson[0]['channel'];
         if channel == 'ok_sub_spot_eth_usdt_ticker':
             self.fresh_ticker(deJson)
-        elif channel == 'ok_sub_spot_eth_usdt_depth_5':
-            self.fresh_depth(deJson, 'usdt', 'eth')
-        elif channel == 'ok_sub_spot_eth_btc_depth_5':
-            self.fresh_depth(deJson, 'btc', 'eth')
-        elif channel == 'ok_sub_spot_btc_usdt_depth_5':
-            self.fresh_depth(deJson, 'usdt', 'btc')
+        else:
+            channel_list = self.channels_dict.get(channel)
+            if channel_list != None:
+                self.fresh_depth(deJson, channel_list[0], channel_list[1])
+            else:
+                logging.debug('okex:on_message:' + str(deJson))
 
     def on_error(self, ws, error):
         logging.error(error)
@@ -51,10 +51,11 @@ class Okex(Exchange):
 
     def on_open(self, ws):
         logging.debug('okex:### opening ###')
-        #ws.send("{'event':'addChannel','channel':'ok_sub_spot_eth_usdt_ticker','binary':'1'}")
-        ws.send("{'event':'addChannel','channel':'ok_sub_spot_eth_usdt_depth_5','binary':'1'}")
-        ws.send("{'event':'addChannel','channel':'ok_sub_spot_eth_btc_depth_5','binary':'1'}")
-        ws.send("{'event':'addChannel','channel':'ok_sub_spot_btc_usdt_depth_5','binary':'1'}")
+        for channel,values in self.channels_dict.items():
+            add_one_channel = "{'event':'addChannel','channel':'" + channel + "','binary':'1'}"
+            ws.send(add_one_channel)
+            logging.debug("okex:add_one_channel:" + add_one_channel)
+        #ws.send("{'event':'addChannel','channel':'ok_sub_spot_btc_usdt_depth_5','binary':'1'}")
 
     def connect(self):
         websocket.enableTrace(False)
@@ -68,9 +69,22 @@ class Okex(Exchange):
     def close(self):
         self.ws.close()
 
+    def add_coins(self, coins_list):
+        self.channels_dict = {}
+        self.channels_dict['ok_sub_spot_eth_usdt_depth_5'] = ('usdt', 'eth')
+        self.channels_dict['ok_sub_spot_btc_usdt_depth_5'] = ('usdt', 'btc')
+        for coins in coins_list:
+            if coins[0] == 'eth' and coins[1] == 'btc':
+                self.channels_dict['ok_sub_spot_eth_btc_depth_5'] = ('btc', 'eth')
+            elif coins[0] == 'eth':
+                self.channels_dict['ok_sub_spot_'+coins[1]+'_eth'+'_depth_5'] = ('eth', coins[1])
+                self.channels_dict['ok_sub_spot_'+coins[1]+'_usdt'+'_depth_5'] = ('usdt', coins[1])
+            elif coins[0] == 'btc':
+                self.channels_dict['ok_sub_spot_'+coins[1]+'_btc'+'_depth_5'] = ('btc', coins[1])
+                self.channels_dict['ok_sub_spot_'+coins[1]+'_usdt'+'_depth_5'] = ('usdt', coins[1])
 
 def sigint_handler(signum,frame):
-    logging.debug("okex:exit")
+    logging.info("okex:exit")
     sys.exit()
 
 
