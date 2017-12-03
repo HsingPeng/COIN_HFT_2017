@@ -3,8 +3,9 @@ import bisect
 
 class Calculation(object):
 
-    def __init__(self):
+    def __init__(self, order_cond):
         self.__three_trade_list = []
+        self.__order_cond = order_cond
 
     def add_three_trade(self, first_coin, second_coin):
         self.__three_trade_list.append((first_coin, second_coin));
