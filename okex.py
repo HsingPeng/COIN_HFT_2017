@@ -8,15 +8,29 @@ import websocket
 import json
 import time
 import hashlib
+import threading
 from exchange import Exchange
 
 class Okex(Exchange):
-    def __init__(self, api_key, secret_key, order_cond):
+    def __init__(self, api_key, secret_key):
         Exchange.__init__(self)
         self.__api_key = api_key
         self.__secret_key = secret_key
-        self.__order_cond = order_cond
         self.__channels_dict = {}
+        self.spot_balance_dict = {}
+        self.order_cond = threading.Condition()
+        # 0    no order;
+        # 1    first order sent;
+        # 10   first order created;
+        # 100  first order finished;
+        # 2    second order sent;
+        # 20   second order created;
+        # 200  second order finished;
+        # 3    third order sent;
+        # 30   third order created;
+        # 300  third order finished
+        # -1   error status
+        self.order_status = 0
         
     def __fresh_ticker(self, deJson):
         _channel = deJson[0]['channel']
@@ -30,6 +44,14 @@ class Okex(Exchange):
         data = deJson[0]['data']
         self._update_depth(base_coin, trans_coin, data['bids'], data['asks'])
         #logging.debug(data)
+
+    def __fresh_spot_balance(self, deJson):
+        channel = deJson[0]['channel']
+        data = deJson[0]['data']
+        free = data.get('info').get('funds').get('free')
+        for k,v in free.items():
+            self.spot_balance_dict[k] = float(v)
+        
 
     def __on_message(self, ws, msg):
         # decode the msg
@@ -65,8 +87,11 @@ class Okex(Exchange):
                     self.__fresh_depth(deJson, channel_list[0], channel_list[1])
                 elif channel == 'ok_sub_spot_eth_usdt_ticker':
                     self.__fresh_ticker(deJson)
+                elif channel == 'ok_spot_userinfo':
+                    self.__fresh_spot_balance(deJson)
                 else:
-                    logging.debug('okex:__on_message:unhandle channel:' + str(deJson))
+                    pass
+                    #logging.debug('okex:__on_message:unhandle channel:' + str(deJson))
                 return
             # handle type
             _type = one_msg.get('type')
@@ -126,8 +151,15 @@ class Okex(Exchange):
         sign = self.__build_my_sign(params)
         finalStr = '{"event":"login","parameters":{"api_key":"' + api_key\
                         + '","sign":"' + sign + '"},"binary":"1"}'
-        self.__send(finalStr)
-        
+        self.__send(finalStr) 
+
+    def add_channel_userinfo(self):
+        api_key = self.__api_key
+        params={'api_key':api_key}
+        sign = self.__build_my_sign(params)
+        finalStr = '{"event":"addChannel","channel":"ok_spot_userinfo","parameters":{"api_key":"'\
+                        + api_key + '","sign":"' + sign + '"},"binary":"1"}'
+        self.__send(finalStr) 
 
     def create_spot_order(self, base_coin, trans_coin, buy_or_sell, price='', amount=''):
         api_key = self.__api_key

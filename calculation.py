@@ -3,9 +3,8 @@ import bisect
 
 class Calculation(object):
 
-    def __init__(self, order_cond):
+    def __init__(self):
         self.__three_trade_list = []
-        self.__order_cond = order_cond
 
     def add_three_trade(self, first_coin, second_coin):
         self.__three_trade_list.append((first_coin, second_coin));
@@ -93,6 +92,7 @@ class Calculation(object):
                             + '\tsecond_coin=' + second_coin
                             + '\tmin_usdt=' + str(min_usdt)
                             + '\tprofit=' + str(profit))
-                bisect.insort(profit_list, (profit, min_usdt, first_coin, second_coin))
+                bisect.insort(profit_list, (profit, min_usdt
+                                , first_coin, second_coin, second_base_position))
         profit_list.reverse()
         return profit_list

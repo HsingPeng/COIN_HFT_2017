@@ -12,11 +12,10 @@ from config import Config
 class Controller(object):
 
     def __init__(self):
-        self.__order_cond = threading.Condition()
-        self.calculation = Calculation(self.__order_cond)
+        self.calculation = Calculation()
 
     def setOkex(self):
-        self.exchange = Okex(Config.okex_api_key, Config.okex_secret_key, self.__order_cond)
+        self.exchange = Okex(Config.okex_api_key, Config.okex_secret_key)
         trade_list = Config.okex_three_trade_list
         # add depths monitor
         #self.exchange.add_coins(trade_list)
@@ -32,14 +31,14 @@ class Controller(object):
         try:
             self.fetch_thread = FetchThread(self.exchange)
             self.fetch_thread.start()
-            self.calculate_thread = CalculateThread(self.exchange
+            self.operate_thread = OperateThread(self.exchange
                                         , self.calculation)
-            #self.calculate_thread.start()
+            #self.operate_thread.start()
         except SystemExit:
             pass
     
     def close(self):
-        self.calculate_thread.keep_running = False
+        self.operate_thread.keep_running = False
         self.disconnect_from_exchange() 
 
 class FetchThread(threading.Thread):
@@ -54,20 +53,100 @@ class FetchThread(threading.Thread):
         depth_dict = self.exchange.get_depth_dict()
         #logging.debug('main:' + str(depth_dict))
 
-class CalculateThread(threading.Thread):
+class OperateThread(threading.Thread):
     def __init__(self, exchange, calculation):
         threading.Thread.__init__(self)
         self.exchange = exchange
         self.calculation = calculation
-        self.keep_running = True;
+        self.keep_running = True
 
     def run(self):
         calculation = self.calculation
+        exchange = self.exchange
+        order_cond = exchange.order_cond
         time.sleep(4)
         while self.keep_running:
             profit_list = calculation.cal(self.exchange)
+            if len(profit_list) == 0:
+                time.sleep(0.1)
+                continue
             logging.debug('main:profit_list' + str(profit_list))
-            time.sleep(0.5)
+            best_profit = profit_list[0]
+            profit_expect = best_profit[0]
+            min_usdt = best_profit[1]
+            first_coin = best_profit[2]
+            second_coin = best_profit[3]
+            second_base_position = best_profit[4]
+            usdt_before = exchange.spot_balance_dict['usdt']
+            if min_usdt < usdt_before:
+            # begin to ordering
+            order_cond.acquire()
+            exchange.create_spot_order('usdt', first_coin, 'buy_market', price=usdt_before)
+            exchange.order_status = 1
+            wait_for_respose(1)
+            # first order created failed.
+            if exchange.order_status != 10:
+                logging.error('first order created failed:order_status=' + exchange.order_status)
+                order_cond.release()
+                exchange.order_status = 0
+                continue
+            wait_for_respose(10)
+            if exchange.order_status != 100:
+                logging.error('first order failed:order_status=' + exchange.order_status)
+                order_cond.release()
+                break
+            first_coin_before = exchange.spot_balance_dict[first_coin]
+            if second_base_position == 1:
+                exchange.create_spot_order(first_coin, second_coin
+                                            , 'buy_market', price=first_coin_before)
+            else:
+                exchange.create_spot_order(second_coin, first_coin
+                                            , 'sell_market', amount=first_coin_before)
+            exchange.order_status = 2
+            wait_for_respose(2)
+            if exchange.order_status != 20:
+                logging.error('second order created failed:order_status=' + exchange.order_status)
+                order_cond.release()
+                break
+            wait_for_respose(20)
+            if exchange.order_status != 200:
+                logging.error('second order failed:order_status=' + exchange.order_status)
+                order_cond.release()
+                break
+            second_coin_before = exchange.spot_balance_dict[second_coin]
+            exchange.create_spot_order(second_coin, 'usdt'
+                                        , 'sell_market', amount=second_coin_before)
+            exchange.order_status = 3
+            wait_for_respose(3)
+            if exchange.order_status != 30:
+                logging.error('third order created failed:order_status=' + exchange.order_status)
+                order_cond.release()
+                break
+            wait_for_respose(30)
+            if exchange.order_status != 300:
+                logging.error('third order failed:order_status=' + exchange.order_status)
+                order_cond.release()
+                break
+            exchange.order_status = 0
+            usdt_after = exchange.spot_balance_dict['usdt']
+            logging.debug('one round finished:usdt_before=' + str(usdt_before)
+                            + ' usdt_after=' + str(usdt_after)
+                            + ' profit=' + str(usdt_after-usdt_before))
+            
+
+
+            
+
+    def wait_for_respose(self, current_status):
+        exchange = self.exchange
+        while exchange.order_status > 0:
+            order_cond.wait()
+            if exchange.order_status > current_status:
+                break
+        return
+
+    #controller.exchange.create_spot_order('usdt', 'act', 'buy_market', price=1)
+
 
 def sigint_handler(signum,frame):
     logging.info("main:exit")
@@ -76,7 +155,8 @@ def sigint_handler(signum,frame):
 
 if __name__ == "__main__":
     # record log
-    logging.basicConfig(filename='main.log', level=logging.DEBUG)
+    logging.basicConfig(filename='main.log', level=logging.DEBUG
+                    ,format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
     # The condition is made for waiting making order and receiving the result
     controller = Controller()
     signal.signal(signal.SIGINT, sigint_handler)
@@ -84,6 +164,6 @@ if __name__ == "__main__":
     controller.run()
     time.sleep(3)
     controller.exchange.login()
-    #controller.exchange.create_spot_order('usdt', 'act', 'buy_market', price=1)
+    controller.exchange.add_channel_userinfo()
     while True:
         time.sleep(10)
