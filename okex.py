@@ -28,30 +28,76 @@ class Okex(Exchange):
         # 200  second order finished;
         # 3    third order sent;
         # 30   third order created;
-        # 300  third order finished
+        # 300  third order finished;
         # -1   error status
         self.order_status = 0
         
-    def __fresh_ticker(self, deJson):
-        _channel = deJson[0]['channel']
-        data = deJson[0]['data']
+    def __fresh_ticker(self, one_msg):
+        _channel = one_msg['channel']
+        data = one_msg['data']
         _buy = data['buy']
         _sell = data['sell']
         logging.debug('channel:%s\tbuy:%-10s\tsell:%-10s' % (_channel, _buy, _sell))
 
-    def __fresh_depth(self, deJson, base_coin, trans_coin):
-        _channel = deJson[0]['channel']
-        data = deJson[0]['data']
+    def __fresh_depth(self, one_msg, base_coin, trans_coin):
+        _channel = one_msg['channel']
+        data = one_msg['data']
         self._update_depth(base_coin, trans_coin, data['bids'], data['asks'])
         #logging.debug(data)
 
-    def __fresh_spot_balance(self, deJson):
-        channel = deJson[0]['channel']
-        data = deJson[0]['data']
+    def __fresh_spot_balance(self, one_msg):
+        logging.debug('__fresh_spot_balance:' + str(one_msg))
+        channel = one_msg['channel']
+        data = one_msg['data']
         free = data.get('info').get('funds').get('free')
         for k,v in free.items():
             self.spot_balance_dict[k] = float(v)
-        
+
+    def __handle_order(self, one_msg):
+        logging.debug('__handle_order:' + str(one_msg))
+        order_cond = self.order_cond
+        order_cond.acquire()
+        channel = one_msg.get('channel')
+        _type = one_msg.get('type')
+        if channel == 'ok_spot_order':
+            if one_msg.get('data').get('result') == True:
+                if self.order_status > 0 and self.order_status < 10:
+                    self.order_status *= 10
+            else:
+                self.order_status = -one_msg.get('data').get('error_code')
+            order_cond.notifyAll()
+        elif _type == 'balance':
+            quote = one_msg.get('quote')
+            base = one_msg.get('base')
+            currency_id = one_msg.get('data').get('currencyId')
+            available = float(one_msg.get('data').get('available'))
+            if quote == 'usdt':
+                base_id = 7
+            elif quote == 'btc':
+                base_id = 0
+            elif quote == 'eth':
+                base_id = 2
+            else:
+                logging.error('base=' + str(base) + ':' + str(one_msg))
+                return
+            if base_id == currency_id:
+                self.spot_balance_dict[quote] = available
+            else:
+                self.spot_balance_dict[base] = available
+                if self.order_status >= 10:
+                    order_cond.notifyAll()
+            logging.debug('currency_id=' + str(currency_id))
+        elif _type == 'order':
+            status = one_msg.get('data').get('status')
+            if self.order_status <= 0:
+                return
+            elif status == 0 and self.order_status < 10:
+                self.order_status *= 10
+                pass
+            elif status == 2 and self.order_status < 100: 
+                self.order_status *= 10
+            logging.debug('status=' + str(status))
+        order_cond.release()
 
     def __on_message(self, ws, msg):
         # decode the msg
@@ -75,32 +121,34 @@ class Okex(Exchange):
         # read the msg
         if isinstance(deJson, dict):
             result = deJson['result']
-            logging.error('okex:__on_message:last sended meg error:' + str(msg))
+            logging.error('okex:__on_message:last sent meg error:' + str(msg))
             return
-        logging.debug('okex:__on_message:' + str(deJson))
         for one_msg in deJson:
             # handle channel
             channel = one_msg.get('channel')
             if channel != None:
                 channel_list = self.__channels_dict.get(channel)
                 if channel_list != None:
-                    self.__fresh_depth(deJson, channel_list[0], channel_list[1])
+                    self.__fresh_depth(one_msg, channel_list[0], channel_list[1])
                 elif channel == 'ok_sub_spot_eth_usdt_ticker':
-                    self.__fresh_ticker(deJson)
+                    self.__fresh_ticker(one_msg)
                 elif channel == 'ok_spot_userinfo':
-                    self.__fresh_spot_balance(deJson)
+                    self.__fresh_spot_balance(one_msg)
+                elif channel == 'ok_spot_order':
+                    self.__handle_order(one_msg)
                 else:
                     pass
-                    #logging.debug('okex:__on_message:unhandle channel:' + str(deJson))
+                    #logging.debug('okex:__on_message:unhandle channel:' + str(one_msg))
                 return
             # handle type
             _type = one_msg.get('type')
             if _type != None:
                 if _type == 'balance':
-                    pass
+                    self.__handle_order(one_msg)
                 elif _type == 'order':
-                    pass
+                    self.__handle_order(one_msg)
                 return
+        logging.debug('okex:__on_message:unhandle:' + str(deJson))
 
     def __on_error(self, ws, error):
         logging.error(error)
@@ -110,6 +158,9 @@ class Okex(Exchange):
 
     def __on_open(self, ws):
         logging.debug('okex:### opening ###')
+        self.login()
+        self.add_channel_userinfo()
+        self.add_channel_userinfo()
         for channel,values in self.__channels_dict.items():
             add_one_channel = "{'event':'addChannel','channel':'" + channel + "','binary':'1'}"
             self.__send(add_one_channel)
