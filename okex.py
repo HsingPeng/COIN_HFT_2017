@@ -85,9 +85,9 @@ class Okex(Exchange):
                 self.spot_balance_dict[quote] = available
             else:
                 self.spot_balance_dict[base] = available
-            if self.order_status >= 100 and self.order_status % 10 == 0:
+            if self.order_status >= 10 and self.order_status % 10 == 0:
                 self.order_status += 1
-            elif self.order_status >= 100:
+            elif self.order_status >= 10:
                 self.order_status = self.order_status / 10 * 10
                 order_cond.notifyAll()
             logging.debug('currency_id=' + str(currency_id) + ' order_status=' + str(self.order_status))
@@ -157,6 +157,7 @@ class Okex(Exchange):
 
     def __on_error(self, ws, error):
         logging.error(error)
+        ws.close()
 
     def __on_close(self, ws):
         logging.debug("okex:#### closed ###")

@@ -94,9 +94,8 @@ class OperateThread(threading.Thread):
                 if exchange.order_status == -1003:
                     continue
                 break
-            elif exchange.order_status != 100:
-                self.wait_for_respose(10) 
-            if exchange.order_status != 100:
+            self.wait_for_respose(10) 
+            if exchange.order_status < 100:
                 logging.error('first order failed:order_status=' + str(exchange.order_status))
                 order_cond.release()
                 break
@@ -114,9 +113,8 @@ class OperateThread(threading.Thread):
                 logging.error('second order created failed:order_status=' + str(exchange.order_status))
                 order_cond.release()
                 break
-            elif exchange.order_status != 200:
-                self.wait_for_respose(20)
-            if exchange.order_status != 200:
+            self.wait_for_respose(20)
+            if exchange.order_status < 200:
                 logging.error('second order failed:order_status=' + str(exchange.order_status))
                 order_cond.release()
                 break
@@ -130,9 +128,8 @@ class OperateThread(threading.Thread):
                 logging.error('third order created failed:order_status=' + str(exchange.order_status))
                 order_cond.release()
                 break
-            elif exchange.order_status != 300:
-                self.wait_for_respose(30)
-            if exchange.order_status != 300:
+            self.wait_for_respose(30)
+            if exchange.order_status < 300:
                 logging.error('third order failed:order_status=' + str(exchange.order_status))
                 order_cond.release()
                 break
