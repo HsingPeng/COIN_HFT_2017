@@ -63,9 +63,10 @@ class Okex(Exchange):
             if one_msg.get('data').get('result') == True:
                 if self.order_status > 0 and self.order_status < 10:
                     self.order_status *= 10
+                    order_cond.notifyAll()
             else:
                 self.order_status = -one_msg.get('data').get('error_code')
-            order_cond.notifyAll()
+                order_cond.notifyAll()
         elif _type == 'balance':
             quote = one_msg.get('quote')
             base = one_msg.get('base')
@@ -84,20 +85,24 @@ class Okex(Exchange):
                 self.spot_balance_dict[quote] = available
             else:
                 self.spot_balance_dict[base] = available
-                if self.order_status >= 10:
-                    order_cond.notifyAll()
-            logging.debug('currency_id=' + str(currency_id))
+            if self.order_status >= 100 and self.order_status % 10 == 0:
+                self.order_status += 1
+            elif self.order_status >= 100:
+                self.order_status = self.order_status / 10 * 10
+                order_cond.notifyAll()
+            logging.debug('currency_id=' + str(currency_id) + ' order_status=' + str(self.order_status))
         elif _type == 'order':
             status = one_msg.get('data').get('status')
             if self.order_status <= 0:
                 return
             elif status == 0 and self.order_status < 10:
                 self.order_status *= 10
-                pass
+                order_cond.notifyAll()
             elif status == 2 and self.order_status < 100: 
                 self.order_status *= 10
             logging.debug('status=' + str(status))
         order_cond.release()
+        time.sleep(0)
 
     def __on_message(self, ws, msg):
         # decode the msg
@@ -119,6 +124,7 @@ class Okex(Exchange):
             logging.error('okex:__on_message:decode meg failed:' + str(msg))
             return
         # read the msg
+        #logging.info('msg:' + str(deJson))
         if isinstance(deJson, dict):
             result = deJson['result']
             logging.error('okex:__on_message:last sent meg error:' + str(msg))
@@ -137,8 +143,7 @@ class Okex(Exchange):
                 elif channel == 'ok_spot_order':
                     self.__handle_order(one_msg)
                 else:
-                    pass
-                    #logging.debug('okex:__on_message:unhandle channel:' + str(one_msg))
+                    logging.debug('okex:__on_message:unhandle channel:' + str(one_msg))
                 return
             # handle type
             _type = one_msg.get('type')
