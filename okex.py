@@ -157,7 +157,6 @@ class Okex(Exchange):
 
     def __on_error(self, ws, error):
         logging.error(error)
-        ws.close()
 
     def __on_close(self, ws):
         logging.debug("okex:#### closed ###")
@@ -179,11 +178,12 @@ class Okex(Exchange):
 
     def connect(self):
         websocket.enableTrace(False)
+        websocket.setdefaulttimeout=1
         self.ws = websocket.WebSocketApp("wss://real.okex.com:10441/websocket",
                                     on_message = self.__on_message,
                                     on_error = self.__on_error,
-                                    on_close = self.__on_close)
-        self.ws.on_open = self.__on_open
+                                    on_close = self.__on_close,
+                                    on_open = self.__on_open)
         self.ws.run_forever()
 
     def close(self):
