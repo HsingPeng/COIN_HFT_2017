@@ -26,12 +26,15 @@ class Controller(object):
 
     def disconnect_from_exchange(self):
         self.fetch_thread.keep_running = False
+        self.heartbeat_thread.keep_running = False
         self.exchange.close()
 
     def run(self):
         try:
             self.fetch_thread = FetchThread(self.exchange)
             self.fetch_thread.start()
+            self.heartbeat_thread = HeartbeatThread(self.exchange)
+            self.heartbeat_thread.start()
             self.operate_thread = OperateThread(self.exchange
                                         , self.calculation)
             time.sleep(5)
@@ -47,13 +50,25 @@ class FetchThread(threading.Thread):
     def __init__(self, exchange):
         threading.Thread.__init__(self)
         self.exchange = exchange
-        self.keep_running = True;
+        self.keep_running = True
 
     def run(self):
         while self.keep_running:
-            self.exchange.connect();
+            self.exchange.connect()
         depth_dict = self.exchange.get_depth_dict()
         #logging.debug('main:' + str(depth_dict))
+
+class HeartbeatThread(threading.Thread):
+    def __init__(self, exchange):
+        threading.Thread.__init__(self)
+        self.exchange = exchange
+        self.keep_running = True
+
+    def run(self):
+        time.sleep(28)
+        while self.keep_running:
+            self.exchange.heartbeat()
+            time.sleep(28)
 
 def sigint_handler(signum,frame):
     logging.info("main:exit")
