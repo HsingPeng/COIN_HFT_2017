@@ -9,6 +9,7 @@ import json
 import time
 import hashlib
 import threading
+import Queue
 from exchange import Exchange
 
 class Okex(Exchange):
@@ -18,19 +19,7 @@ class Okex(Exchange):
         self.__secret_key = secret_key
         self.__channels_dict = {}
         self.spot_balance_dict = {}
-        self.order_cond = threading.Condition()
-        # 0    no order;
-        # 1    first order sent;
-        # 10   first order created;
-        # 100  first order finished;
-        # 2    second order sent;
-        # 20   second order created;
-        # 200  second order finished;
-        # 3    third order sent;
-        # 30   third order created;
-        # 300  third order finished;
-        # -1   error status
-        self.order_status = 0
+        self.queue = Queue.Queue()
         
     def __fresh_ticker(self, one_msg):
         _channel = one_msg['channel']
@@ -54,19 +43,18 @@ class Okex(Exchange):
             self.spot_balance_dict[k] = float(v)
 
     def __handle_order(self, one_msg):
+        queue = self.queue
         logging.debug('__handle_order:' + str(one_msg))
-        order_cond = self.order_cond
-        order_cond.acquire()
         channel = one_msg.get('channel')
         _type = one_msg.get('type')
         if channel == 'ok_spot_order':
-            if one_msg.get('data').get('result') == True:
-                if self.order_status > 0 and self.order_status < 10:
-                    self.order_status *= 10
-                    order_cond.notifyAll()
-            else:
-                self.order_status = -one_msg.get('data').get('error_code')
-                order_cond.notifyAll()
+            if one_msg.get('data').get('result') != True:
+                code = one_msg.get('data').get('error_code')
+                if code == 1003:
+                    msg = {'type': 'error', 'msg': 'less than the minimum value', 'code': -103}
+                else:
+                    msg = {'type': 'error', 'msg': 'ok_spot_order error', 'code': -code}
+                queue.put(msg)
         elif _type == 'balance':
             quote = one_msg.get('quote')
             base = one_msg.get('base')
@@ -83,26 +71,17 @@ class Okex(Exchange):
                 return
             if base_id == currency_id:
                 self.spot_balance_dict[quote] = available
+                coin = quote
             else:
                 self.spot_balance_dict[base] = available
-            if self.order_status >= 10 and self.order_status % 10 == 0:
-                self.order_status += 1
-            elif self.order_status >= 10:
-                self.order_status = self.order_status / 10 * 10
-                order_cond.notifyAll()
-            logging.debug('currency_id=' + str(currency_id) + ' order_status=' + str(self.order_status))
+                coin = base
+            if one_msg.get('binary') == 1:
+                msg = {'type': 'balance', 'amount': available, 'coin': coin}
+                queue.put(msg)
+            logging.debug('currency_id=' + str(currency_id) + ' available=' + str(available))
         elif _type == 'order':
             status = one_msg.get('data').get('status')
-            if self.order_status <= 0:
-                return
-            elif status == 0 and self.order_status < 10:
-                self.order_status *= 10
-                order_cond.notifyAll()
-            elif status == 2 and self.order_status < 100: 
-                self.order_status *= 10
-            logging.debug('status=' + str(status))
-        order_cond.release()
-        time.sleep(0)
+            logging.debug('order status=' + str(status))
 
     def __on_message(self, ws, msg):
         # decode the msg
@@ -124,7 +103,7 @@ class Okex(Exchange):
             logging.error('okex:__on_message:decode meg failed:' + str(msg))
             return
         # read the msg
-        #logging.info('msg:' + str(deJson))
+        # logging.info('msg:' + str(deJson))
         if isinstance(deJson, dict):
             result = deJson['result']
             logging.error('okex:__on_message:last sent meg error:' + str(msg))
@@ -157,6 +136,8 @@ class Okex(Exchange):
 
     def __on_error(self, ws, error):
         logging.error(error)
+        msg = {'type': 'error', 'msg': str(error), 'code': -101}
+        self.queue.put(msg)
 
     def __on_close(self, ws):
         logging.debug("okex:#### closed ###")
