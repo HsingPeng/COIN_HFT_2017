@@ -105,8 +105,9 @@ class Okex(Exchange):
         # read the msg
         # logging.info('msg:' + str(deJson))
         if isinstance(deJson, dict):
-            result = deJson['result']
-            logging.error('okex:__on_message:last sent meg error:' + str(msg))
+            result = deJson.get('result')
+            if result != None:
+                logging.error('okex:__on_message:last sent meg error:' + str(msg))
             return
         for one_msg in deJson:
             # handle channel
@@ -220,6 +221,9 @@ class Okex(Exchange):
             finalStr += ",'amount':'"+str(amount)+"'"
         finalStr+="},'binary':'1'}"
         self.__send(finalStr)
+
+    def heartbeat(self):
+          self.__send("{'event':'ping'}")
 
     def __build_my_sign(self, params):
         secretKey = self.__secret_key
