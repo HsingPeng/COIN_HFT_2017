@@ -87,7 +87,7 @@ class Calculation(object):
                             + '\tsecond_coin=' + second_coin
                             + '\tmin_usdt=' + str(min_usdt)
                             + '\tprofit=' + str(profit))'''
-            if profit > 0.26 and min_usdt >= 20:
+            if profit > 0.25 and min_usdt >= 20:
                 logging.info('calculation:first_coin=' + first_coin
                             + '\tsecond_coin=' + second_coin
                             + '\tmin_usdt=' + str(min_usdt)
