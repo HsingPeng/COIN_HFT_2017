@@ -35,6 +35,7 @@ class Exchange:
                 + base_coin + ' trans_coin=' + trans_coin
                 + ' bids_or_asks:' + bids_or_asks)
         return None
+
     @abc.abstractmethod
     def connect(self):
         pass
@@ -45,4 +46,16 @@ class Exchange:
 
     @abc.abstractmethod
     def add_coins(self, coin_list):
+        pass
+
+    @abc.abstractmethod
+    def create_spot_order(self, base_coin, trans_coin, buy_or_sell, price='', amount=''):
+        pass
+
+    @abc.abstractmethod
+    def heartbeat(self):
+        pass
+
+    @abc.abstractmethod
+    def get_available_coins(self):
         pass
