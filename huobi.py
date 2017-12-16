@@ -19,7 +19,7 @@ from io import BytesIO
 from exchange import Exchange
 
 class Huobi(Exchange):
-    __TRADE_URL = 'https://api.huobi.pro'
+    __TRADE_URL = 'http://api.huobi.pro'
     
     def __init__(self, api_key, secret_key):
         Exchange.__init__(self)
@@ -27,6 +27,7 @@ class Huobi(Exchange):
         self.__secret_key = secret_key
         self.__channels_dict = { }
         self.spot_balance_dict = { }
+        self.requests = requests.Session()
     
     def __fresh_depth(self, data, coins):
         if coins.endswith('usdt'):
@@ -145,18 +146,18 @@ class Huobi(Exchange):
         logging.debug('request get')
         logging.debug(url + postdata)
         try:
-            response = requests.get(url, postdata, headers = headers, timeout = 5)
+            response = self.requests.get(url, params=postdata, headers = headers, timeout = 5)
             logging.debug('response get')
             logging.debug(response)
             if response.status_code == 200:
                 return response.json()
             return None
-        except Exception:
+        except Exception as e:
             if 'response' in dir():
-                logging.debug('httpGet failed, detail is:%s' % response.text)
+                logging.error('httpGet failed, detail is:%s' % response.text)
             else:
-                logging.debug('httpGet failed, detail is:%s' % e)
-            return None
+                logging.error('httpGet failed, detail is:%s' % e)
+            return
 
     def __http_post_request(self, url, params, add_to_headers = None):
         headers = {
@@ -168,7 +169,7 @@ class Huobi(Exchange):
         logging.debug('request post')
         logging.debug(url + postdata) 
         try:
-            response = requests.post(url, postdata, headers = headers, timeout = 10)
+            response = self.requests.post(url, data=postdata, headers = headers, timeout = 10)
             if response.status_code == 200:
                 return response.json()
             return None
@@ -230,7 +231,7 @@ class Huobi(Exchange):
         params = {
             'account-id': self.__acct_id }
         data = self.__api_key_get(params, url)
-        if data.get('status') != 'ok':
+        if data == None or data.get('status') != 'ok':
             logging.error('__get_balance error:' + str(data))
             return None
         balance_list = data.get('data').get('list')

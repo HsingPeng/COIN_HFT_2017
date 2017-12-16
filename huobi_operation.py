@@ -51,7 +51,7 @@ class HuobiOperateThread(threading.Thread):
             usdt_before = exchange.spot_balance_dict['usdt']
             if min_usdt > usdt_before:
                 min_usdt = usdt_before
-            max_usdt = 30
+            max_usdt = 25
             if min_usdt > max_usdt:
                 min_usdt = max_usdt
             try:
@@ -63,11 +63,11 @@ class HuobiOperateThread(threading.Thread):
                     self.status = -1
                     continue
                 # get coin balance
-                exchange.get_available_coins()
-                if exchange.spot_balance_dict[first_coin] <= first_coin_before:
+                i = 0
+                while (i < 5):
                     exchange.get_available_coins()
-                if exchange.spot_balance_dict[first_coin] <= first_coin_before:
-                    exchange.get_available_coins()
+                    if exchange.spot_balance_dict[first_coin] > first_coin_before:
+                        break
                 if exchange.spot_balance_dict[first_coin] <= first_coin_before:
                     logging.error('first order failed:')
                     self.status = -1 
@@ -86,11 +86,11 @@ class HuobiOperateThread(threading.Thread):
                     logging.error('second order created failed:' + str(response))
                     self.status = -1
                     continue
-                exchange.get_available_coins()
-                if exchange.spot_balance_dict[second_coin] <= second_coin_before:
+                i = 0
+                while (i < 5):
                     exchange.get_available_coins()
-                if exchange.spot_balance_dict[second_coin] <= second_coin_before:
-                    exchange.get_available_coins()
+                    if exchange.spot_balance_dict[second_coin] > second_coin_before:
+                        break
                 if exchange.spot_balance_dict[second_coin] <= second_coin_before:
                     logging.error('second order failed:')
                     self.status = -1 
@@ -103,9 +103,11 @@ class HuobiOperateThread(threading.Thread):
                     logging.error('third order created failed:' + str(response))
                     self.status = -1
                     continue
-                if exchange.spot_balance_dict['usdt'] <= usdt_middle:
+                i = 0
+                while (i < 5):
                     exchange.get_available_coins()
-                if exchange.spot_balance_dict['usdt'] <= usdt_middle:
+                    if exchange.spot_balance_dict['usdt'] > usdt_middle:
+                        break
                     exchange.get_available_coins()
                 if exchange.spot_balance_dict['usdt'] <= usdt_middle:
                     logging.error('third order failed:')
