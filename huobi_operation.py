@@ -57,7 +57,6 @@ class HuobiOperateThread(threading.Thread):
             try:
                 # begin to ordering
                 first_coin_before = exchange.spot_balance_dict[first_coin]
-                print('min_usdt:' + str(min_usdt))
                 response = exchange.create_spot_order('usdt', first_coin, 'buy_market', amount=min_usdt)
                 if response.get('status') != 'ok':
                     logging.error('first order created failed:' + str(response))
@@ -104,7 +103,6 @@ class HuobiOperateThread(threading.Thread):
                     logging.error('third order created failed:' + str(response))
                     self.status = -1
                     continue
-                print(exchange.get_available_coins())
                 if exchange.spot_balance_dict['usdt'] <= usdt_middle:
                     exchange.get_available_coins()
                 if exchange.spot_balance_dict['usdt'] <= usdt_middle:
