@@ -7,9 +7,10 @@ import logging
 logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
 
-sock = ssl.wrap_socket(socket.socket())
+#sock = ssl.wrap_socket(socket.socket())
+sock = socket.socket()
 logging.debug('start')
-sock.connect(('api.huobi.pro', 443))
+sock.connect(('api.huobi.pro', 80))
 logging.debug('connected')
 data = "GET /market/depth?symbol=ethusdt&type=step1 HTTP/1.1\r\nHost: api.huobi.pro\r\nConnection: close\r\nUser-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36\r\nContent-type: application/x-www-form-urlencoded\r\n\r\n"
 sock.sendall(data.encode())
