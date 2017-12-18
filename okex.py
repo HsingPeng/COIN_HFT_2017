@@ -9,7 +9,7 @@ import json
 import time
 import hashlib
 import threading
-import Queue
+from multiprocessing import Queue
 from exchange import Exchange
 
 class Okex(Exchange):
@@ -19,7 +19,7 @@ class Okex(Exchange):
         self.__secret_key = secret_key
         self.__channels_dict = {}
         self.spot_balance_dict = {}
-        self.queue = Queue.Queue()
+        self.queue = Queue()
         
     def __fresh_ticker(self, one_msg):
         _channel = one_msg['channel']
@@ -91,13 +91,13 @@ class Okex(Exchange):
             inflated = decompress.decompress(msg)
             inflated += decompress.flush()
             deJson = json.loads(inflated.decode('utf-8'))
-        except Exception, e:
+        except Exception as e:
             decode_error = True
         if decode_error == True:
             try:
                 deJson = json.loads(msg)
                 decode_error = False
-            except Exception, e:
+            except Exception as e:
                 pass
         if decode_error == True:
             logging.error('okex:__on_message:decode meg failed:' + str(msg))
@@ -211,6 +211,7 @@ class Okex(Exchange):
         if price:
             params['price'] = price
         if amount:
+            amount = int(amount * 100000000) / 100000000
             params['amount'] = amount
         sign = self.__build_my_sign(params)
         finalStr = "{'event':'addChannel','channel':'ok_spot_order','parameters':{'api_key':'"+api_key\

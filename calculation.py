@@ -87,11 +87,14 @@ class Calculation(object):
                             + '\tsecond_coin=' + second_coin
                             + '\tmin_usdt=' + str(min_usdt)
                             + '\tprofit=' + str(profit))'''
-            if profit > 0.25 and min_usdt >= 20:
-                logging.info('calculation:first_coin=' + first_coin
-                            + '\tsecond_coin=' + second_coin
-                            + '\tmin_usdt=' + str(min_usdt)
-                            + '\tprofit=' + str(profit))
+            if profit > 0.4 and min_usdt >= 30:
+                logging.info('calculation:first_coin=' + first_coin +
+                                '\tsecond_coin=' + second_coin +
+                                '\tmin_usdt=' + str(min_usdt)  +
+                                '\tprofit=' + str(profit) + ' ' +
+                                str(first_depth_price) + ' ' +
+                                str(second_depth_price) + ' ' +
+                                str(third_depth_price))
                 bisect.insort(profit_list, (profit, min_usdt
                                 , first_coin, second_coin, second_base_position))
         profit_list.reverse()
