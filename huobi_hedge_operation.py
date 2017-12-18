@@ -8,7 +8,7 @@ def order_task(data):
     base_coin = data[1]
     trans_coin = data[2]
     buy_or_sell = data[3]
-    amount = data[4]
+    _amount = data[4]
     response = exchange.create_spot_order(base_coin, trans_coin, buy_or_sell, amount=_amount)
     return response
 
@@ -24,7 +24,7 @@ class HuobiHedgeOperateThread(threading.Thread):
     def run(self):
         calculation = self.calculation
         exchange = self.exchange
-        self.status = -1
+        self.status = 0
         logging.info('OperateThread starts.')
         while self.keep_running:
             if self.status < 0:
@@ -60,23 +60,31 @@ class HuobiHedgeOperateThread(threading.Thread):
             # second order
             if second_base_position == 1:
                 second_coin_before = first_coin_before / second_depth_price
-                request_list.append((first_coin, second_coin,  'buy_market', first_coin_before))
+                request_list.append((exchange, first_coin, second_coin,  'buy_market', first_coin_before))
             else:
                 second_coin_before = first_coin_before * second_depth_price
-                request_list.append((second_coin, first_coin,  'sell_market', first_coin_before))
+                request_list.append((exchange, second_coin, first_coin,  'sell_market', first_coin_before))
             # third order
-            request_list.append(('usdt', second_coin, 'sell_market', second_coin_before))
+            request_list.append((exchange, 'usdt', second_coin, 'sell_market', second_coin_before))
             with ThreadPoolExecutor(max_workers=5) as executor:
-                i = 0
-                for response in executor.map(task, tasks):
+                i = 1
+                for response in executor.map(order_task, request_list):
                     if response.get('status') != 'ok':
                         logging.error(str(i) + ' order created failed:' + str(response))
                         self.status = -1
                         continue 
                     i += 1
-            exchange.get_available_coins()
-            self.status = 0
-            usdt_after = exchange.spot_balance_dict['usdt']
+            i = 0
+            while (i < 5):
+                i += 1
+                self.status = -1
+                exchange.get_available_coins()
+                usdt_after = exchange.spot_balance_dict['usdt']
+                if usdt_after > usdt_before - 10:
+                    self.status = 0
+                    break
+            if self.status == -1: 
+                    logging.error('available error')
             usdt_profit = profit = usdt_after-usdt_before
             if usdt_profit > 0:
                 color = '34m'

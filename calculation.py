@@ -83,10 +83,10 @@ class Calculation(object):
             if min_usdt > third_depth_usdt:
                 min_usdt = third_depth_usdt
             # finish the calculation
-            logging.debug('calculation:first_coin=' + first_coin
+            '''logging.debug('calculation:first_coin=' + first_coin
                             + '\tsecond_coin=' + second_coin
                             + '\tmin_usdt=' + str(min_usdt)
-                            + '\tprofit=' + str(profit))
+                            + '\tprofit=' + str(profit))'''
             if profit > 0.6 and min_usdt >= 20:
                 logging.info('calculation:first_coin=' + first_coin
                             + '\tsecond_coin=' + second_coin
