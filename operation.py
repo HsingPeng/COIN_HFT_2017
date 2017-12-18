@@ -1,6 +1,7 @@
 import logging
 import threading
 import time
+from multiprocessing import Queue
 
 class OperateThread(threading.Thread):
     def __init__(self, exchange, calculation):
@@ -58,7 +59,7 @@ class OperateThread(threading.Thread):
             usdt_before = exchange.spot_balance_dict['usdt']
             if min_usdt > usdt_before:
                 min_usdt = usdt_before
-            max_usdt = 100
+            max_usdt = 190
             if min_usdt > max_usdt:
                 min_usdt = max_usdt
             try:
@@ -143,6 +144,6 @@ class OperateThread(threading.Thread):
                 logging.info('one round finished:usdt_before=' + str(usdt_before) +
                                 ' usdt_after=' + str(usdt_after) +
                                 ' usdt_profit=' + '\033[;;' + color + str(usdt_after-usdt_before) + '\033[0m')
-            except Queue.Empty:
-                logging.error('Queue.Empty.')
+            except Exception as e:
+                logging.error('Exception:%s' % e)
                 self.status = -1

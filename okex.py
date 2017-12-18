@@ -66,6 +66,8 @@ class Okex(Exchange):
                 base_id = 0
             elif quote == 'eth':
                 base_id = 2
+            elif quote == 'bch':
+                base_id = 5
             else:
                 logging.error('base=' + str(base) + ':' + str(one_msg))
                 return
@@ -174,14 +176,16 @@ class Okex(Exchange):
     def add_coins(self, coins_list):
         self.__channels_dict['ok_sub_spot_eth_usdt_depth_5'] = ('usdt', 'eth')
         self.__channels_dict['ok_sub_spot_btc_usdt_depth_5'] = ('usdt', 'btc')
+        self.__channels_dict['ok_sub_spot_bch_usdt_depth_5'] = ('usdt', 'bch')
         for coins in coins_list:
-            if coins[0] == 'eth' and coins[1] == 'btc':
-                self.__channels_dict['ok_sub_spot_eth_btc_depth_5'] = ('btc', 'eth')
+            if coins[0] == 'btc':
+                self.__channels_dict['ok_sub_spot_'+coins[1]+'_btc'+'_depth_5'] = ('btc', coins[1])
+                self.__channels_dict['ok_sub_spot_'+coins[1]+'_usdt'+'_depth_5'] = ('usdt', coins[1])
             elif coins[0] == 'eth':
                 self.__channels_dict['ok_sub_spot_'+coins[1]+'_eth'+'_depth_5'] = ('eth', coins[1])
                 self.__channels_dict['ok_sub_spot_'+coins[1]+'_usdt'+'_depth_5'] = ('usdt', coins[1])
-            elif coins[0] == 'btc':
-                self.__channels_dict['ok_sub_spot_'+coins[1]+'_btc'+'_depth_5'] = ('btc', coins[1])
+            elif coins[0] == 'bch':
+                self.__channels_dict['ok_sub_spot_'+coins[1]+'_bch'+'_depth_5'] = ('bch', coins[1])
                 self.__channels_dict['ok_sub_spot_'+coins[1]+'_usdt'+'_depth_5'] = ('usdt', coins[1])
 
     def login(self):

@@ -17,18 +17,18 @@ class Calculation(object):
         for coins in self.__three_trade_list:
             first_coin = coins[0]
             second_coin = coins[1]
-            if first_coin == 'eth' and second_coin == 'btc':
+            if first_coin == 'btc':
                 second_base_coin = 'btc'
-                second_trans_coin = 'eth'
-                second_bids_or_asks = 'bids'
-                second_base_position = 2
-            elif first_coin == 'eth':
-                second_base_coin = 'eth'
                 second_trans_coin = second_coin
                 second_bids_or_asks = 'asks'
                 second_base_position = 1
-            elif first_coin == 'btc':
+            elif second_coin == 'btc':
                 second_base_coin = 'btc'
+                second_trans_coin = first_coin
+                second_bids_or_asks = 'bids'
+                second_base_position = 2    
+            elif first_coin == 'eth':
+                second_base_coin = 'eth'
                 second_trans_coin = second_coin
                 second_bids_or_asks = 'asks'
                 second_base_position = 1
@@ -37,8 +37,13 @@ class Calculation(object):
                 second_trans_coin = first_coin
                 second_bids_or_asks = 'bids'
                 second_base_position = 2
-            elif second_coin == 'btc':
-                second_base_coin = 'btc'
+            elif first_coin == 'bch':
+                second_base_coin = 'bch'
+                second_trans_coin = second_coin
+                second_bids_or_asks = 'asks'
+                second_base_position = 1
+            elif second_coin == 'bch':
+                second_base_coin = 'bch'
                 second_trans_coin = first_coin
                 second_bids_or_asks = 'bids'
                 second_base_position = 2
