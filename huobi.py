@@ -173,7 +173,9 @@ class Huobi(Exchange):
             if response.status_code == 200:
                 return response.json()
             return None
-        except:
+        except Exception as e:
+            if response == None:
+                logging.debug("httpPoset failed,Exception:%s" % e)
             logging.debug('httpPost failed, detail is:%s' % response.text)
             return None
 
