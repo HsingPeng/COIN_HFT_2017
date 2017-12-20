@@ -33,15 +33,15 @@ class OperateThread(threading.Thread):
                     else:
                         continue
                     try:
-                        response = queue.get(True, 3)
+                        response = queue.get(True, 10)
                         _type = response['type']
                         if _type == 'error':
                             logging.error('rebase order created failed:' + str(response))
                             continue
-                        response = queue.get(True, 3)
-                        response = queue.get(True, 3)
-                    except Queue.Empty:
-                        logging.error('rebase Queue.Empty.')
+                        response = queue.get(True, 10)
+                        response = queue.get(True, 10)
+                    except Exception as e:
+                        logging.error('rebase Error:%s' % e)
                 self.status = 0
             profit_list = calculation.cal(self.exchange)
             if len(profit_list) == 0:
@@ -59,13 +59,13 @@ class OperateThread(threading.Thread):
             usdt_before = exchange.spot_balance_dict['usdt']
             if min_usdt > usdt_before:
                 min_usdt = usdt_before
-            max_usdt = 190
+            max_usdt = 40
             if min_usdt > max_usdt:
                 min_usdt = max_usdt
             try:
                 # begin to ordering
                 exchange.create_spot_order('usdt', first_coin, 'buy_market', price=min_usdt)
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 # whether first order created failed.
                 if _type == 'error':
@@ -73,14 +73,14 @@ class OperateThread(threading.Thread):
                     self.status = response['code']
                     continue
                 # get basecoin balance
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('first order failed:' + str(response))
                     self.status = response['code']
                     continue
                 # get targetcoin balance
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('first order failed:' + str(response))
@@ -94,19 +94,19 @@ class OperateThread(threading.Thread):
                 else:
                     exchange.create_spot_order(second_coin, first_coin,
                                                 'sell_market', amount=first_coin_before)
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('second order created failed:' + str(response))
                     self.status = response['code']
                     continue
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('second order failed:' + str(response))
                     self.status = response['code']
                     continue
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('second order failed:' + str(response))
@@ -116,19 +116,19 @@ class OperateThread(threading.Thread):
                 second_coin_before = exchange.spot_balance_dict[second_coin]
                 exchange.create_spot_order('usdt', second_coin,
                                             'sell_market', amount=second_coin_before)
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('third order created failed:' + str(response))
                     self.status = response['code']
                     continue
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('third order failed:' + str(response))
                     self.status = response['code']
                     continue
-                response = queue.get(True, 3)
+                response = queue.get(True, 10)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('third order failed:' + str(response))
