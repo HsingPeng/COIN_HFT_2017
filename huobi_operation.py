@@ -51,7 +51,7 @@ class HuobiOperateThread(threading.Thread):
             usdt_before = exchange.spot_balance_dict['usdt']
             if min_usdt > usdt_before:
                 min_usdt = usdt_before
-            max_usdt = 25
+            max_usdt = 100
             if min_usdt > max_usdt:
                 min_usdt = max_usdt
             try:

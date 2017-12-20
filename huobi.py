@@ -174,9 +174,10 @@ class Huobi(Exchange):
                 return response.json()
             return None
         except Exception as e:
-            if response == None:
+            if 'response' in locals():
+                logging.debug('httpPost failed, detail is:%s' % response.text)
+            else:
                 logging.debug("httpPoset failed,Exception:%s" % e)
-            logging.debug('httpPost failed, detail is:%s' % response.text)
             return None
 
     def __api_key_get(self, params, request_path):
@@ -235,7 +236,7 @@ class Huobi(Exchange):
         data = self.__api_key_get(params, url)
         if data == None or data.get('status') != 'ok':
             logging.error('__get_balance error:' + str(data))
-            return None
+            return
         balance_list = data.get('data').get('list')
         for balance in balance_list:
             if balance['type'] == 'trade':
