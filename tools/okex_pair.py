@@ -47,6 +47,10 @@ okex_usdt = [
 'xrp',
 'xuc',
 'zec',
+'icx',
+'qvt',
+'btm',
+'ark',
 'zrx'
 ]
 
@@ -102,6 +106,10 @@ okex_btc = [
 'xrp',
 'xuc',
 'zec',
+'icx',
+'qvt',
+'btm',
+'ark',
 'zrx'
 ]
 
@@ -150,6 +158,10 @@ okex_eth = [
 'xrp',
 'xuc',
 'zec',
+'icx',
+'qvt',
+'btm',
+'ark',
 'zrx'
 ]
 
