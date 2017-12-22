@@ -38,9 +38,12 @@ class Okex(Exchange):
         logging.debug('__fresh_spot_balance:' + str(one_msg))
         channel = one_msg['channel']
         data = one_msg['data']
-        free = data.get('info').get('funds').get('free')
-        for k,v in free.items():
-            self.spot_balance_dict[k] = float(v)
+        try:
+            free = data.get('info').get('funds').get('free')
+            for k,v in free.items():
+                self.spot_balance_dict[k] = float(v)
+        except Exception as e:
+            Logging.error('get balance error:%s' % str(e))
 
     def __handle_order(self, one_msg):
         queue = self.queue
