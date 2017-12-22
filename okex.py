@@ -177,6 +177,8 @@ class Okex(Exchange):
         self.ws.close()
 
     def add_coins(self, coins_list):
+        if coins_list == None:
+            return
         self.__channels_dict['ok_sub_spot_eth_usdt_depth_5'] = ('usdt', 'eth')
         self.__channels_dict['ok_sub_spot_btc_usdt_depth_5'] = ('usdt', 'btc')
         self.__channels_dict['ok_sub_spot_bch_usdt_depth_5'] = ('usdt', 'bch')
@@ -206,6 +208,9 @@ class Okex(Exchange):
         finalStr = '{"event":"addChannel","channel":"ok_spot_userinfo","parameters":{"api_key":"'\
                         + api_key + '","sign":"' + sign + '"},"binary":"1"}'
         self.__send(finalStr) 
+
+    def get_available_coins(self):
+        self.add_channel_userinfo()
 
     def create_spot_order(self, base_coin, trans_coin, buy_or_sell, price='', amount=''):
         api_key = self.__api_key

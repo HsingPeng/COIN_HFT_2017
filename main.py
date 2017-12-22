@@ -9,6 +9,7 @@ from okex import Okex
 from calculation import Calculation
 from config import Config
 from operation import OperateThread
+from okex_wave_operation import OkexWaveOperateThread
 
 class Controller(object):
 
@@ -18,6 +19,8 @@ class Controller(object):
     def setOkex(self):
         self.exchange = Okex(Config.okex_api_key, Config.okex_secret_key)
         trade_list = Config.okex_three_trade_list
+        if trade_list == None:
+            return
         # add depths monitor
         self.exchange.add_coins(trade_list)
         # add coins calculations
@@ -35,7 +38,7 @@ class Controller(object):
             self.fetch_thread.start()
             self.heartbeat_thread = HeartbeatThread(self.exchange)
             self.heartbeat_thread.start()
-            self.operate_thread = OperateThread(self.exchange
+            self.operate_thread = OkexWaveOperateThread(self.exchange
                                         , self.calculation)
             time.sleep(5)
             self.operate_thread.start()
