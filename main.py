@@ -11,6 +11,7 @@ from calculation import Calculation
 from config import Config
 from operation import OperateThread
 from huobi_operation import HuobiOperateThread
+from huobi_quickorder_operation import HuobiQuickOrderOperateThread
 
 class Controller(object):
 
@@ -35,7 +36,8 @@ class Controller(object):
         # add coins calculations
         for trade in trade_list:
             self.calculation.add_three_trade(trade[0], trade[1])
-        self.operate_thread = HuobiOperateThread(self.exchange, self.calculation)
+        #self.operate_thread = HuobiOperateThread(self.exchange, self.calculation)
+        self.operate_thread = HuobiQuickOrderOperateThread(self.exchange, self.calculation)
 
     def disconnect_from_exchange(self):
         self.fetch_thread.keep_running = False
