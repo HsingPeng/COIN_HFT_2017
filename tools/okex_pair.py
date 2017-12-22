@@ -51,6 +51,11 @@ okex_usdt = [
 'qvt',
 'btm',
 'ark',
+'yoyo',
+'ast',
+'sub',
+'dnt',
+'fun',
 'zrx'
 ]
 
@@ -110,6 +115,11 @@ okex_btc = [
 'qvt',
 'btm',
 'ark',
+'yoyo',
+'ast',
+'sub',
+'dnt',
+'fun',
 'zrx'
 ]
 
@@ -162,6 +172,11 @@ okex_eth = [
 'qvt',
 'btm',
 'ark',
+'yoyo',
+'ast',
+'sub',
+'dnt',
+'fun',
 'zrx'
 ]
 
