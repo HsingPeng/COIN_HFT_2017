@@ -17,9 +17,11 @@ class Controller(object):
 
     def __init__(self):
         self.calculation = Calculation()
+        self.fetch_binance_userdata_thread = None
 
     def setOkex(self):
         self.exchange = Okex(Config.okex_api_key, Config.okex_secret_key)
+        self.exchange.keep_running = True
         trade_list = Config.okex_three_trade_list
         if trade_list == None:
             return
@@ -33,6 +35,7 @@ class Controller(object):
 
     def setBinance(self):
         self.exchange = Binance(Config.binance_api_key, Config.binance_secret_key)
+        self.exchange.keep_running = True
         trade_list = Config.binance_three_trade_list
         # add depths monitor
         self.exchange.add_coins(trade_list)
@@ -40,16 +43,18 @@ class Controller(object):
         for trade in trade_list:
             self.calculation.add_three_trade(trade[0], trade[1])
         self.operate_thread = BinanceOperateThread(self.exchange, self.calculation)
+        self.fetch_binance_userdata_thread = FetchBinanceUserDataThread(self.exchange)
 
     def disconnect_from_exchange(self):
-        self.fetch_thread.keep_running = False
-        self.heartbeat_thread.keep_running = False
+        self.exchange.keep_running = False
         self.exchange.close()
 
     def run(self):
         try:
             self.fetch_thread = FetchThread(self.exchange)
             self.fetch_thread.start()
+            if self.fetch_binance_userdata_thread != None:
+                self.fetch_binance_userdata_thread.start()
             self.heartbeat_thread = HeartbeatThread(self.exchange)
             self.heartbeat_thread.start()
             time.sleep(3)
@@ -58,17 +63,26 @@ class Controller(object):
             pass
     
     def close(self):
-        self.operate_thread.keep_running = False
+        self.exchange.keep_running = False
         self.disconnect_from_exchange() 
+
+class FetchBinanceUserDataThread(threading.Thread):
+    def __init__(self, exchange):
+        threading.Thread.__init__(self)
+        self.exchange = exchange
+
+    def run(self):
+        while self.exchange.keep_running:
+            self.exchange.connect_userdata()
+        depth_dict = self.exchange.get_depth_dict()
 
 class FetchThread(threading.Thread):
     def __init__(self, exchange):
         threading.Thread.__init__(self)
         self.exchange = exchange
-        self.keep_running = True
 
     def run(self):
-        while self.keep_running:
+        while self.exchange.keep_running:
             self.exchange.connect()
         depth_dict = self.exchange.get_depth_dict()
         #logging.debug('main:' + str(depth_dict))
@@ -77,11 +91,10 @@ class HeartbeatThread(threading.Thread):
     def __init__(self, exchange):
         threading.Thread.__init__(self)
         self.exchange = exchange
-        self.keep_running = True
 
     def run(self):
         time.sleep(28)
-        while self.keep_running:
+        while self.exchange.keep_running:
             self.exchange.heartbeat()
             time.sleep(28)
 

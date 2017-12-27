@@ -15,6 +15,7 @@ import requests
 from multiprocessing import Queue
 from exchange import Exchange
 from urllib.parse import urlencode
+from config import Config
 
 class Binance(Exchange):
 
@@ -56,19 +57,30 @@ class Binance(Exchange):
         #logging.debug(str(self.get_depth_dict()))
 
     def __on_message(self, ws, msg):
+        queue = self.queue
         # read the msg
         deJson = json.loads(msg)
         #logging.debug('msg:' + str(deJson))
         stream = deJson.get('stream')
+        e = deJson.get('e')
         if stream != None and stream.endswith('depth5'):
             self.__fresh_depth(deJson.get('data'), stream.split('@')[0])
+            return
+        elif e != None and e == 'outboundAccountInfo':
+            msg = {'type': 'balance'}
+            queue.put(msg)
+            B = deJson.get('B')
+            for balance in B:
+                self.spot_balance_dict[balance['a'].lower()] = float(balance['f'])
+            return
+        elif e != None and e == 'executionReport':
+            logging.debug('binance:__on_message:executionReport')
             return
         logging.debug('binance:__on_message:unhandle:' + str(deJson))
 
     def __on_error(self, ws, error):
         logging.error(error)
         msg = {'type': 'error', 'msg': str(error), 'code': -101}
-        self.queue.put(msg)
 
     def __on_close(self, ws):
         logging.debug("binance:#### closed ###")
@@ -94,8 +106,24 @@ class Binance(Exchange):
                                     on_open = self.__on_open)
         self.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
 
+    def connect_userdata(self):
+        response = self.__create_a_listenkey()
+        listen_key = response.get('listenKey')
+        if listen_key == None:
+            logging.debug('binance:__create_a_listenkey error:%s' % str(response))
+            return
+        self.__listen_key = listen_key
+        websocket.enableTrace(False)
+        url = 'wss://stream.binance.com:9443/ws/' + listen_key
+        self.ws_userdata = websocket.WebSocketApp(url,
+                                    on_message = self.__on_message,
+                                    on_error = self.__on_error,
+                                    on_close = self.__on_close)
+        self.ws_userdata.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+
     def close(self):
         self.ws.close()
+        self.ws_userdata.close()
 
     def add_coins(self, coins_list):
         if coins_list == None:
@@ -156,19 +184,19 @@ class Binance(Exchange):
             elif trans_coin == 'ltc':
                 quantity = int(quantity * 1000) / 1000
         elif trans_coin == 'btc':
-            quantity = int(quantity * 1000000) / 1000000
+            quantity = int(quantity * 1000) / 1000
         elif trans_coin == 'neo':
             quantity = int(quantity * 1000) / 1000
         elif trans_coin == 'bnb':
-            quantity = int(quantity * 100) / 100
+            quantity = int(quantity * 1) / 1
         elif trans_coin == 'bcc' or trans_coin == 'ltc' or trans_coin == 'eth':
-            quantity = int(quantity * 100000) / 100000
+            quantity = int(quantity * 1000) / 1000
         else:
             quantity = int(quantity * 1000) / 1000
         return self.__order(symbol.upper(), side, quantity, orderType=orderType)
 
     def heartbeat(self):
-        pass
+        self.__request('PUT', '/api/v1/userDataStream', {'listenKey':self.__listen_key})
 
     def __balances(self):
         """Get current balances for all symbols."""
@@ -210,8 +238,12 @@ class Binance(Exchange):
         data = self.__signedRequest("POST", path, params)
         return data
 
+    def __create_a_listenkey(self):
+        return self.__request('POST', '/api/v1/userDataStream')
+
     def __request(self, method, path, params=None):
-        resp = requests.request(method, ENDPOINT + path, params=params)
+        resp = requests.request(method, self.__ENDPOINT + path, params=params,
+                                    headers={"X-MBX-APIKEY": self.__api_key})
         return resp.json()
 
     def __signedRequest(self, method, path, params):
@@ -243,13 +275,15 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, binance_sigint_handler)
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
-    __ACCESS_KEY = None
-    __SECRET_KEY = None
+    __ACCESS_KEY = Config.binance_api_key
+    __SECRET_KEY = Config.binance_secret_key
     binance = Binance(__ACCESS_KEY, __SECRET_KEY)
     binance.add_coins([('eth', 'btc'), ('btc', 'eth')])
     #binance.connect()
-    logging.debug('1')
+    logging.debug('start')
     #binance.get_available_coins()
     #print(str(binance.spot_balance_dict))
-    data = binance.create_spot_order('usdt', 'bnb', 'buy_market', price=1)
-    logging.debug(str(data))
+    #data = binance.create_spot_order('usdt', 'bnb', 'buy_market', price=1)
+    #logging.debug(str(data))
+    #print(str(binance.create_a_listenkey()))
+    binance.connect_userdata()
