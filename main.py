@@ -10,6 +10,8 @@ from calculation import Calculation
 from config import Config
 from operation import OperateThread
 from okex_wave_operation import OkexWaveOperateThread
+from binance import Binance
+from binance_operation import BinanceOperateThread
 
 class Controller(object):
 
@@ -26,6 +28,18 @@ class Controller(object):
         # add coins calculations
         for trade in trade_list:
             self.calculation.add_three_trade(trade[0], trade[1])
+        #self.operate_thread = OperateThread(self.exchange, self.calculation)
+        self.operate_thread = OkexWaveOperateThread(self.exchange, self.calculation)
+
+    def setBinance(self):
+        self.exchange = Binance(Config.binance_api_key, Config.binance_secret_key)
+        trade_list = Config.binance_three_trade_list
+        # add depths monitor
+        self.exchange.add_coins(trade_list)
+        # add coins calculation
+        for trade in trade_list:
+            self.calculation.add_three_trade(trade[0], trade[1])
+        self.operate_thread = BinanceOperateThread(self.exchange, self.calculation)
 
     def disconnect_from_exchange(self):
         self.fetch_thread.keep_running = False
@@ -38,9 +52,7 @@ class Controller(object):
             self.fetch_thread.start()
             self.heartbeat_thread = HeartbeatThread(self.exchange)
             self.heartbeat_thread.start()
-            self.operate_thread = OkexWaveOperateThread(self.exchange
-                                        , self.calculation)
-            time.sleep(5)
+            time.sleep(3)
             self.operate_thread.start()
         except SystemExit:
             pass
@@ -85,7 +97,7 @@ if __name__ == "__main__":
     # The condition is made for waiting making order and receiving the result
     controller = Controller()
     signal.signal(signal.SIGINT, sigint_handler)
-    controller.setOkex()
+    controller.setBinance()
     controller.run()
     while True:
         time.sleep(10)

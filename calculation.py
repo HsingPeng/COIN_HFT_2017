@@ -37,6 +37,16 @@ class Calculation(object):
                 second_trans_coin = first_coin
                 second_bids_or_asks = 'bids'
                 second_base_position = 2
+            elif first_coin == 'bnb':
+                second_base_coin = 'bnb'
+                second_trans_coin = second_coin
+                second_bids_or_asks = 'asks'
+                second_base_position = 1
+            elif second_coin == 'bnb':
+                second_base_coin = 'bnb'
+                second_trans_coin = first_coin
+                second_bids_or_asks = 'bids'
+                second_base_position = 2
             elif first_coin == 'bch':
                 second_base_coin = 'bch'
                 second_trans_coin = second_coin
@@ -92,7 +102,7 @@ class Calculation(object):
                             + '\tsecond_coin=' + second_coin
                             + '\tmin_usdt=' + str(min_usdt)
                             + '\tprofit=' + str(profit))'''
-            if profit > 0.4 and min_usdt >= 30:
+            if profit > 0.6 and min_usdt >= 30:
                 logging.info('calculation:first_coin=' + first_coin +
                                 '\tsecond_coin=' + second_coin +
                                 '\tmin_usdt=' + str(min_usdt)  +
@@ -100,7 +110,10 @@ class Calculation(object):
                                 str(first_depth_price) + ' ' +
                                 str(second_depth_price) + ' ' +
                                 str(third_depth_price))
-                bisect.insort(profit_list, (profit, min_usdt
-                                , first_coin, second_coin, second_base_position))
+                bisect.insort(profit_list, (profit, min_usdt,
+                                first_coin, second_coin, second_base_position,
+                                first_depth_price,
+                                second_depth_price,
+                                third_depth_price))
         profit_list.reverse()
         return profit_list
