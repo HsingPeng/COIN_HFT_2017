@@ -48,7 +48,7 @@ class OperateThread(threading.Thread):
                 time.sleep(0.1)
                 continue
             while queue.empty() == False:
-                    response = queue.get()
+                response = queue.get()
             logging.debug('main:profit_list' + str(profit_list))
             best_profit = profit_list[0]
             profit_expect = best_profit[0]
