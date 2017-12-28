@@ -82,11 +82,16 @@ class Okex(Exchange):
                 coin = base
             if one_msg.get('binary') == 1:
                 msg = {'type': 'balance', 'amount': available, 'coin': coin}
-                queue.put(msg)
+                #queue.put(msg)
             logging.debug('currency_id=' + str(currency_id) + ' available=' + str(available))
         elif _type == 'order':
             status = one_msg.get('data').get('status')
             logging.debug('order status=' + str(status))
+            if status == 2 and one_msg.get('binary') == 1:
+                executedValue = one_msg.get('data').get('executedValue')
+                filledSize = one_msg.get('data').get('filledSize')
+                msg = {'type': 'order', 'executedValue': float(executedValue), 'filledSize': float(filledSize)}
+                queue.put(msg)
 
     def __on_message(self, ws, msg):
         # decode the msg

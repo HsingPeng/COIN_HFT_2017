@@ -33,13 +33,11 @@ class OperateThread(threading.Thread):
                     else:
                         continue
                     try:
-                        response = queue.get(True, 10)
+                        response = queue.get(True, 3)
                         _type = response['type']
                         if _type == 'error':
                             logging.error('rebase order created failed:' + str(response))
                             continue
-                        response = queue.get(True, 10)
-                        response = queue.get(True, 10)
                     except Exception as e:
                         logging.error('rebase Error:%s' % e)
                 self.status = 0
@@ -48,7 +46,7 @@ class OperateThread(threading.Thread):
                 time.sleep(0.1)
                 continue
             while queue.empty() == False:
-                    response = queue.get()
+                    response = queue.get(True, 3)
             logging.debug('main:profit_list' + str(profit_list))
             best_profit = profit_list[0]
             profit_expect = best_profit[0]
@@ -65,78 +63,59 @@ class OperateThread(threading.Thread):
             try:
                 # begin to ordering
                 exchange.create_spot_order('usdt', first_coin, 'buy_market', price=min_usdt)
-                response = queue.get(True, 10)
+                response = queue.get(True, 3)
                 _type = response['type']
                 # whether first order created failed.
                 if _type == 'error':
                     logging.error('first order created failed:' + str(response))
                     self.status = response['code']
                     continue
-                # get basecoin balance
-                response = queue.get(True, 10)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('first order failed:' + str(response))
-                    self.status = response['code']
-                    continue
-                # get targetcoin balance
-                response = queue.get(True, 10)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('first order failed:' + str(response))
-                    self.status = response['code']
+                elif _type == 'order':
+                    filled_size = response.get('filledSize')
+                    available = filled_size * 0.999
+                else:
+                    self.status = -1
                     continue
                 # second order
-                first_coin_before = exchange.spot_balance_dict[first_coin]
+                #first_coin_before = exchange.spot_balance_dict[first_coin]
+                first_coin_before = available
                 if second_base_position == 1:
                     exchange.create_spot_order(first_coin, second_coin,
                                                 'buy_market', price=first_coin_before)
                 else:
                     exchange.create_spot_order(second_coin, first_coin,
                                                 'sell_market', amount=first_coin_before)
-                response = queue.get(True, 10)
+                response = queue.get(True, 3)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('second order created failed:' + str(response))
                     self.status = response['code']
                     continue
-                response = queue.get(True, 10)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('second order failed:' + str(response))
-                    self.status = response['code']
-                    continue
-                response = queue.get(True, 10)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('second order failed:' + str(response))
-                    self.status = response['code']
-                    continue
+                elif _type == 'order':
+                    if second_base_position == 1:
+                        filled_size = response.get('filledSize')
+                        available = filled_size * 0.999
+                    else:
+                        executed_value = response.get('executedValue')
+                        available = executed_value * 0.999
                 # third order
-                second_coin_before = exchange.spot_balance_dict[second_coin]
+                #second_coin_before = exchange.spot_balance_dict[second_coin]
+                second_coin_before = available
                 exchange.create_spot_order('usdt', second_coin,
                                             'sell_market', amount=second_coin_before)
-                response = queue.get(True, 10)
+                response = queue.get(True, 3)
                 _type = response['type']
                 if _type == 'error':
                     logging.error('third order created failed:' + str(response))
                     self.status = response['code']
                     continue
-                response = queue.get(True, 10)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('third order failed:' + str(response))
-                    self.status = response['code']
-                    continue
-                response = queue.get(True, 10)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('third order failed:' + str(response))
-                    self.status = response['code']
-                    continue
+                elif _type == 'order':
+                    executed_value = response.get('executedValue')
+                    available = executed_value * 0.999
                 self.status = 0
-                usdt_after = exchange.spot_balance_dict['usdt']
-                usdt_profit = profit = usdt_after-usdt_before
+                #usdt_after = exchange.spot_balance_dict['usdt']
+                usdt_after = available + usdt_before - min_usdt
+                usdt_profit = usdt_after - usdt_before
                 if usdt_profit > 0:
                     color = '34m'
                 else:
@@ -144,6 +123,6 @@ class OperateThread(threading.Thread):
                 logging.info('one round finished:usdt_before=' + str(usdt_before) +
                                 ' usdt_after=' + str(usdt_after) +
                                 ' usdt_profit=' + '\033[;;' + color + str(usdt_after-usdt_before) + '\033[0m')
-            except Exception as e:
+            except OSError as e:
                 logging.error('Exception:%s' % e)
                 self.status = -1
