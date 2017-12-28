@@ -96,7 +96,7 @@ class HeartbeatThread(threading.Thread):
         time.sleep(28)
         while self.exchange.keep_running:
             self.exchange.heartbeat()
-            time.sleep(28)
+            time.sleep(28 * 60)
 
 def sigint_handler(signum,frame):
     logging.info("main:exit")

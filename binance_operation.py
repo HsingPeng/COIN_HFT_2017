@@ -21,28 +21,34 @@ class BinanceOperateThread(threading.Thread):
         exchange.get_available_coins()
         while self.exchange.keep_running:
             if self.status < 0:
+                self.status = 0
                 logging.info('rebase all coins')
                 # rebase all coins
                 for k, v in exchange.spot_balance_dict.items():
                     if k == 'btc':
                         if v > 0.001:
                             response = exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                            logging.debug('rebase:' + str(response))
+                            if response == None:
+                                break
                     elif k == 'neo':
                         if v > 0.001:
                             response = exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                            logging.debug('rebase:' + str(response))
+                            if response == None:
+                                break
                     elif k == 'bnb':
                         if v > 1:
                             response = exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                            logging.debug('rebase:' + str(response))
+                            if response == None:
+                                break
                     elif k == 'bcc' or k == 'ltc' or k == 'eth':
                         if v > 0.001:
                             response = exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                            logging.debug('rebase:' + str(response))
+                            if response == None:
+                                break
                     elif k != 'usdt' and v > 0.001:
                         response = exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                        logging.debug('rebase:' + str(response))
+                        if response == None:
+                            break
                     else:
                         continue
                 try:
@@ -50,7 +56,8 @@ class BinanceOperateThread(threading.Thread):
                         response = queue.get(True, 10)
                 except Exception as e:
                     logging.error('rebase Error:%s' % e)
-                self.status = 0
+                if self.status < 0:
+                    continue
             profit_list = calculation.cal(self.exchange)
             if len(profit_list) == 0:
                 time.sleep(0.1)

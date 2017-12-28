@@ -259,6 +259,7 @@ class Binance(Exchange):
         data = resp.json()
         if "msg" in data:
             logging.error(data['msg'])
+            return None
         return data
 
     def __formatNumber(self, x):
