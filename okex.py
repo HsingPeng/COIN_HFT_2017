@@ -43,7 +43,7 @@ class Okex(Exchange):
             for k,v in free.items():
                 self.spot_balance_dict[k] = float(v)
         except Exception as e:
-            Logging.error('get balance error:%s' % str(e))
+            logging.error('get balance error:%s' % str(e))
 
     def __handle_order(self, one_msg):
         queue = self.queue
