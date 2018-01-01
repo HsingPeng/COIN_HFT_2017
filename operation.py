@@ -23,7 +23,7 @@ class OperateThread(threading.Thread):
             if self.status < 0:
                 exchange.add_channel_userinfo()
                 time.sleep(0.2)
-                logging.debug('rebase all coins')
+                logging.info('rebase all coins')
                 # rebase all coins
                 for k, v in exchange.spot_balance_dict.items():
                     if k == 'btc' and v > 0.001:
@@ -43,7 +43,7 @@ class OperateThread(threading.Thread):
                 self.status = 0
             profit_list = calculation.cal(self.exchange)
             if len(profit_list) == 0:
-                time.sleep(0.1)
+                time.sleep(0.05)
                 continue
             while queue.empty() == False:
                     response = queue.get(True, 3)
@@ -57,63 +57,94 @@ class OperateThread(threading.Thread):
             usdt_before = exchange.spot_balance_dict['usdt']
             if min_usdt > usdt_before:
                 min_usdt = usdt_before
-            max_usdt = 40
+            max_usdt = 50
             if min_usdt > max_usdt:
                 min_usdt = max_usdt
             try:
                 # begin to ordering
-                exchange.create_spot_order('usdt', first_coin, 'buy_market', price=min_usdt)
-                response = queue.get(True, 3)
-                _type = response['type']
-                # whether first order created failed.
-                if _type == 'error':
-                    logging.error('first order created failed:' + str(response))
-                    self.status = response['code']
-                    continue
-                elif _type == 'order':
-                    filled_size = response.get('filledSize')
-                    available = filled_size * 0.999
-                else:
-                    self.status = -1
+                i = 0
+                while i <= 3:
+                    i += 1
+                    exchange.create_spot_order('usdt', first_coin, 'buy_market', price=min_usdt)
+                    response = queue.get(True, 3)
+                    _type = response['type']
+                    # whether first order created failed.
+                    if _type == 'error':
+                        logging.error('first order created failed:' + str(response))
+                        self.status = response['code']
+                        continue
+                    elif _type == 'order':
+                        filled_size = response.get('filledSize')
+                        available = filled_size * 0.999
+                        self.status = 0
+                        break
+                    else:
+                        self.status = -2
+                        logging.error('first order created failed:' + str(response))
+                        break
+                if self.status < 0:
+                    time.sleep(0.5)
                     continue
                 # second order
                 #first_coin_before = exchange.spot_balance_dict[first_coin]
                 first_coin_before = available
-                if second_base_position == 1:
-                    exchange.create_spot_order(first_coin, second_coin,
-                                                'buy_market', price=first_coin_before)
-                else:
-                    exchange.create_spot_order(second_coin, first_coin,
-                                                'sell_market', amount=first_coin_before)
-                response = queue.get(True, 3)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('second order created failed:' + str(response))
-                    self.status = response['code']
-                    continue
-                elif _type == 'order':
+                i = 0
+                while i<=3:
+                    i += 1
                     if second_base_position == 1:
-                        filled_size = response.get('filledSize')
-                        available = filled_size * 0.999
+                        exchange.create_spot_order(first_coin, second_coin,
+                                                    'buy_market', price=first_coin_before)
                     else:
-                        executed_value = response.get('executedValue')
-                        available = executed_value * 0.999
+                        exchange.create_spot_order(second_coin, first_coin,
+                                                    'sell_market', amount=first_coin_before)
+                        response = queue.get(True, 3)
+                        _type = response['type']
+                    if _type == 'error':
+                        logging.error('second order created failed:' + str(response))
+                        self.status = response['code']
+                        continue
+                    elif _type == 'order':
+                        if second_base_position == 1:
+                            filled_size = response.get('filledSize')
+                            available = filled_size * 0.999
+                        else:
+                            executed_value = response.get('executedValue')
+                            available = executed_value * 0.999
+                        self.status = 0
+                        break
+                    else:
+                        logging.error('second order created failed:' + str(response))
+                        self.status = -2
+                        break
+                if self.status < 0:
+                    time.sleep(0.5)
+                    continue
                 # third order
                 #second_coin_before = exchange.spot_balance_dict[second_coin]
                 second_coin_before = available
-                exchange.create_spot_order('usdt', second_coin,
-                                            'sell_market', amount=second_coin_before)
-                response = queue.get(True, 3)
-                _type = response['type']
-                if _type == 'error':
-                    logging.error('third order created failed:' + str(response))
-                    self.status = response['code']
+                i = 0
+                while i<=3:
+                    i += 1
+                    exchange.create_spot_order('usdt', second_coin,
+                                                'sell_market', amount=second_coin_before)
+                    response = queue.get(True, 3)
+                    _type = response['type']
+                    if _type == 'error':
+                        logging.error('third order created failed:' + str(response))
+                        self.status = response['code']
+                        continue
+                    elif _type == 'order':
+                        executed_value = response.get('executedValue')
+                        available = executed_value * 0.999
+                        self.status = 0
+                        break
+                    else:
+                        self.status = -2
+                        logging.error('third order created failed:' + str(response))
+                        break
+                if self.status < 0:
+                    time.sleep(0.5)
                     continue
-                elif _type == 'order':
-                    executed_value = response.get('executedValue')
-                    available = executed_value * 0.999
-                self.status = 0
-                #usdt_after = exchange.spot_balance_dict['usdt']
                 usdt_after = available + usdt_before - min_usdt
                 usdt_profit = usdt_after - usdt_before
                 if usdt_profit > 0:
@@ -123,6 +154,6 @@ class OperateThread(threading.Thread):
                 logging.info('one round finished:usdt_before=' + str(usdt_before) +
                                 ' usdt_after=' + str(usdt_after) +
                                 ' usdt_profit=' + '\033[;;' + color + str(usdt_after-usdt_before) + '\033[0m')
-            except OSError as e:
+            except Exception as e:
                 logging.error('Exception:%s' % e)
                 self.status = -1
