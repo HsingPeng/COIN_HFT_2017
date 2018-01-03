@@ -57,7 +57,7 @@ class OperateThread(threading.Thread):
             usdt_before = exchange.spot_balance_dict['usdt']
             if min_usdt > usdt_before:
                 min_usdt = usdt_before
-            max_usdt = 50
+            max_usdt = 30
             if min_usdt > max_usdt:
                 min_usdt = max_usdt
             try:
@@ -97,8 +97,8 @@ class OperateThread(threading.Thread):
                     else:
                         exchange.create_spot_order(second_coin, first_coin,
                                                     'sell_market', amount=first_coin_before)
-                        response = queue.get(True, 3)
-                        _type = response['type']
+                    response = queue.get(True, 3)
+                    _type = response['type']
                     if _type == 'error':
                         logging.error('second order created failed:' + str(response))
                         self.status = response['code']
