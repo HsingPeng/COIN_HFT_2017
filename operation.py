@@ -25,7 +25,8 @@ class OperateThread(threading.Thread):
                 time.sleep(0.2)
                 logging.info('rebase all coins')
                 # rebase all coins
-                for k, v in exchange.spot_balance_dict.items():
+                for k in exchange.spot_balance_dict.keys():
+                    v = exchange.spot_balance_dict[k]
                     if k == 'btc' and v > 0.001:
                         exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
                     elif k != 'usdt' and v > 0.01:
