@@ -90,7 +90,7 @@ class OperateThread(threading.Thread):
                 #first_coin_before = exchange.spot_balance_dict[first_coin]
                 first_coin_before = available
                 i = 0
-                while i<=3:
+                while i<=10:
                     i += 1
                     if second_base_position == 1:
                         exchange.create_spot_order(first_coin, second_coin,
@@ -101,7 +101,7 @@ class OperateThread(threading.Thread):
                     response = queue.get(True, 3)
                     _type = response['type']
                     if _type == 'error':
-                        logging.error('second order created failed:' + str(response))
+                        logging.debug('second order created failed:' + str(response))
                         self.status = response['code']
                         continue
                     elif _type == 'order':
@@ -124,14 +124,14 @@ class OperateThread(threading.Thread):
                 #second_coin_before = exchange.spot_balance_dict[second_coin]
                 second_coin_before = available
                 i = 0
-                while i<=3:
+                while i<=10:
                     i += 1
                     exchange.create_spot_order('usdt', second_coin,
                                                 'sell_market', amount=second_coin_before)
                     response = queue.get(True, 3)
                     _type = response['type']
                     if _type == 'error':
-                        logging.error('third order created failed:' + str(response))
+                        logging.debug('third order created failed:' + str(response))
                         self.status = response['code']
                         continue
                     elif _type == 'order':
@@ -144,7 +144,7 @@ class OperateThread(threading.Thread):
                         logging.error('third order created failed:' + str(response))
                         break
                 if self.status < 0:
-                    time.sleep(0.5)
+                    time.sleep(2)
                     continue
                 usdt_after = available + usdt_before - min_usdt
                 usdt_profit = usdt_after - usdt_before
