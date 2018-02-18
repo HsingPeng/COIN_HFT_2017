@@ -25,22 +25,22 @@ class OperateThread(threading.Thread):
                 time.sleep(0.2)
                 logging.info('rebase all coins')
                 # rebase all coins
-                for k in exchange.spot_balance_dict.keys():
-                    v = exchange.spot_balance_dict[k]
-                    if k == 'btc' and v > 0.001:
-                        exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                    elif k != 'usdt' and v > 0.01:
-                        exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
-                    else:
-                        continue
-                    try:
-                        response = queue.get(True, 3)
-                        _type = response['type']
-                        if _type == 'error':
-                            logging.error('rebase order created failed:' + str(response))
+                try:
+                    for k in exchange.spot_balance_dict.keys():
+                        v = exchange.spot_balance_dict[k]
+                        if k == 'btc' and v > 0.001:
+                            exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
+                        elif k != 'usdt' and v > 0.01:
+                            exchange.create_spot_order('usdt', k, 'sell_market', amount=v)
+                        else:
                             continue
-                    except Exception as e:
-                        logging.error('rebase Error:%s' % e)
+                            response = queue.get(True, 3)
+                            _type = response['type']
+                            if _type == 'error':
+                                logging.error('rebase order created failed:' + str(response))
+                                continue
+                except Exception as e:
+                    logging.error('rebase Error:%s' % e)
                 self.status = 0
             profit_list = calculation.cal(self.exchange)
             if len(profit_list) == 0:
