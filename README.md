@@ -1,4 +1,10 @@
-# OKEX_HFT
+# COIN_HFT
+
+## intro
+
+基于数字货币交易所的三角套利实盘程序。
+
+曾在2017年11月份运行良好，200元入场，月收益10w+。2018年1月进入亏损状态，停止运行。
 
 ## branch
 
@@ -10,6 +16,8 @@
 |feature-quickorder | okex的第三个版本，基于基准货币的交易同时进行，待完成。|
 |feature-huobi | huobi的第一个版本，同步等待顺序执行，效果较差。（正在使用）|
 |feature-huobi-hedge | huobi的第二个版本，三笔交易同时进行，对冲操作，不完善。|
+
+有效运作时间最长的是 feature-queue
 
 ## 概念解释
 
