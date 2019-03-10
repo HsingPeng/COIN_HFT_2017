@@ -8,7 +8,7 @@
 
 ## branch
 
-| | |
+| branch| intro|
 |--|--|
 |master|空|
 |dev | okex的第一个版本，同步使用条件变量，问题多|
@@ -16,6 +16,8 @@
 |feature-quickorder | okex的第三个版本，基于基准货币的交易同时进行，待完成。|
 |feature-huobi | huobi的第一个版本，同步等待顺序执行，效果较差。（正在使用）|
 |feature-huobi-hedge | huobi的第二个版本，三笔交易同时进行，对冲操作，不完善。|
+| feature-okex-wave | okex网格策略，无盈利。|
+| feature-binance | binance策略，无盈利。|
 
 有效运作时间最长的是 feature-queue
 
